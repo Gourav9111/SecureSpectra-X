@@ -1,9 +1,8 @@
-from flask import Flask, request, render_template_string, jsonify
-import subprocess
-import nmap
+from flask import Flask, request, render_template_string
 import requests
 import json
 from bs4 import BeautifulSoup
+import socket
 
 app = Flask(__name__)
 
@@ -31,7 +30,7 @@ def check_cves_via_nvd_api(tech_name):
                 return None
         else:
             return None
-    except Exception as e:
+    except Exception:
         return None
 
 def detect_basic_technologies(domain):
@@ -46,7 +45,7 @@ def detect_basic_technologies(domain):
         meta_generator = soup.find('meta', {'name': 'generator'})
         if meta_generator:
             tech_info.append(meta_generator.get('content'))
-    except Exception as e:
+    except Exception:
         return tech_info
     return tech_info
 
@@ -55,38 +54,23 @@ def find_subdomains(domain):
         response = requests.get(f'https://crt.sh/?q=%25.{domain}&output=json')
         if response.status_code == 200:
             json_data = response.json()
-            subdomains = set([item['name_value'] for item in json_data])
+            subdomains = set(item['name_value'] for item in json_data)
             return list(subdomains)
         else:
             return []
-    except Exception as e:
+    except Exception:
         return []
 
-def nmap_scan(domain):
-    nm = nmap.PortScanner()
-    scan_info = {}
-    try:
-        scan_result = nm.scan(domain, '1-1000', '-sV')
-        if scan_result:
-            for host in nm.all_hosts():
-                scan_info['host'] = host
-                scan_info['hostname'] = nm[host].hostname()
-                scan_info['state'] = nm[host].state()
-                protocols = {}
-                for protocol in nm[host].all_protocols():
-                    ports = {}
-                    for port in nm[host][protocol].keys():
-                        ports[port] = {
-                            'state': nm[host][protocol][port]['state'],
-                            'service': nm[host][protocol][port]['name']
-                        }
-                    protocols[protocol] = ports
-                scan_info['protocols'] = protocols
-            return scan_info
-        else:
-            return {}
-    except Exception as e:
-        return {}
+def simple_port_scan(domain):
+    open_ports = []
+    for port in range(1, 1025):  # Scanning the first 1024 ports
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(1)  # 1 second timeout
+        result = sock.connect_ex((domain, port))
+        if result == 0:
+            open_ports.append(port)
+        sock.close()
+    return open_ports
 
 def run_dirsearch(domain):
     dirsearch_results = []
@@ -98,7 +82,7 @@ def run_dirsearch(domain):
             if "200" in decoded_line or "301" in decoded_line:
                 dirsearch_results.append(decoded_line)
         return dirsearch_results
-    except Exception as e:
+    except Exception:
         return []
 
 def find_login_pages(domain):
@@ -114,7 +98,7 @@ def find_login_pages(domain):
                 login_pages_found.append(url)
         except requests.ConnectionError:
             pass
-        except Exception as e:
+        except Exception:
             pass
     return login_pages_found
 
@@ -125,14 +109,14 @@ def index():
         result = {
             'domain': domain,
             'subdomains': [],
-            'nmap_scan': {},
             'technologies': [],
             'dirsearch': [],
             'login_pages': [],
-            'cves': {}
+            'cves': {},
+            'open_ports': []
         }
 
-        # 1. Detect basic technologies and check CVEs first
+        # Detect basic technologies and check CVEs
         tech_info = detect_basic_technologies(domain)
         result['technologies'] = tech_info
 
@@ -142,20 +126,19 @@ def index():
                 if cves:
                     result['cves'][tech] = cves
 
-        # 2. Find subdomains
+        # Find subdomains
         subdomains = find_subdomains(domain)
-        if subdomains:
-            result['subdomains'] = subdomains
+        result['subdomains'] = subdomains
 
-        # 3. Run Nmap scan on the domain
-        nmap_info = nmap_scan(domain)
-        result['nmap_scan'] = nmap_info
+        # Simple port scan
+        open_ports = simple_port_scan(domain)
+        result['open_ports'] = open_ports
 
-        # 4. Run directory brute-forcing using Dirsearch
+        # Run directory brute-forcing using Dirsearch
         dirsearch_results = run_dirsearch(domain)
         result['dirsearch'] = dirsearch_results
 
-        # 5. Find potential login pages
+        # Find potential login pages
         login_pages = find_login_pages(domain)
         result['login_pages'] = login_pages
 
@@ -163,30 +146,107 @@ def index():
             <html>
             <head>
                 <style>
-                    body { font-family: Arial, sans-serif; background-color: #f4f4f4; color: #333; margin: 0; padding: 20px; }
-                    h1 { color: #0056b3; text-align: center; font-size: 36px; margin-bottom: 20px; }
-                    h2 { color: #007bff; border-bottom: 2px solid #007bff; padding-bottom: 10px; margin-bottom: 10px; }
-                    pre { background-color: #333; color: #fff; padding: 10px; border-radius: 5px; overflow-x: auto; }
-                    ul { list-style-type: none; padding: 0; }
-                    ul li { background-color: #fff; margin: 5px 0; padding: 10px; border-radius: 5px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); }
-                    a { color: #007bff; text-decoration: none; }
-                    a:hover { text-decoration: underline; }
+                    body {
+                        font-family: Arial, sans-serif;
+                        background-color: #f4f4f4;
+                        color: #333;
+                        margin: 0;
+                        padding: 20px;
+                    }
+                    h1 {
+                        color: #0056b3;
+                        text-align: center;
+                        font-size: 36px;
+                        margin-bottom: 20px;
+                    }
+                    h2 {
+                        color: #007bff;
+                        border-bottom: 2px solid #007bff;
+                        padding-bottom: 10px;
+                        margin-bottom: 10px;
+                    }
+                    pre {
+                        background-color: #333;
+                        color: #fff;
+                        padding: 10px;
+                        border-radius: 5px;
+                        overflow-x: auto;
+                    }
+                    ul {
+                        list-style-type: none;
+                        padding: 0;
+                    }
+                    ul li {
+                        background-color: #fff;
+                        margin: 5px 0;
+                        padding: 10px;
+                        border-radius: 5px;
+                        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                    }
+                    a {
+                        color: #007bff;
+                        text-decoration: none;
+                    }
+                    a:hover {
+                        text-decoration: underline;
+                    }
+                    .header {
+                        text-align: center;
+                        margin-bottom: 30px;
+                    }
+                    .header h1 {
+                        font-size: 48px;
+                        color: #ff5722;
+                    }
                 </style>
             </head>
             <body>
+                <div class="header">
+                    <h1>SecureSpectra-X</h1>
+                </div>
                 <h1>Security Check Results for {{ result.domain }}</h1>
                 <h2>Technologies Detected</h2>
-                <ul>{% for tech in result.technologies %}<li>{{ tech }}</li>{% endfor %}</ul>
+                <ul>
+                    {% for tech in result.technologies %}
+                    <li>{{ tech }}</li>
+                    {% endfor %}
+                </ul>
                 <h2>CVEs Detected</h2>
-                <ul>{% for tech, cves in result.cves.items() %}<li>{{ tech }}<ul>{% for cve in cves %}<li><strong>{{ cve.cve_id }}</strong>: {{ cve.description }}</li>{% endfor %}</ul></li>{% endfor %}</ul>
+                <ul>
+                    {% for tech, cves in result.cves.items() %}
+                    <li>{{ tech }}
+                        <ul>
+                            {% for cve in cves %}
+                            <li><strong>{{ cve.cve_id }}</strong>: {{ cve.description }}</li>
+                            {% endfor %}
+                        </ul>
+                    </li>
+                    {% endfor %}
+                </ul>
                 <h2>Subdomains</h2>
-                <ul>{% for subdomain in result.subdomains %}<li>{{ subdomain }}</li>{% endfor %}</ul>
-                <h2>Nmap Scan Results</h2>
-                <pre>{{ result.nmap_scan | tojson(indent=4) }}</pre>
+                <ul>
+                    {% for subdomain in result.subdomains %}
+                    <li>{{ subdomain }}</li>
+                    {% endfor %}
+                </ul>
+                <h2>Open Ports</h2>
+                <ul>
+                    {% for port in result.open_ports %}
+                    <li>Port {{ port }}: Open</li>
+                    {% endfor %}
+                </ul>
                 <h2>Directory Brute-Forcing Results</h2>
-                <ul>{% for result in result.dirsearch %}<li>{{ result }}</li>{% endfor %}</ul>
+                <ul>
+                    {% for result in result.dirsearch %}
+                    <li>{{ result }}</li>
+                    {% endfor %}
+                </ul>
                 <h2>Login Pages</h2>
-                <ul>{% for page in result.login_pages %}<li><a href="{{ page }}" target="_blank">{{ page }}</a></li>{% endfor %}</ul>
+                <ul>
+                    {% for page in result.login_pages %}
+                    <li><a href="{{ page }}" target="_blank">{{ page }}</a></li>
+                    {% endfor %}
+                </ul>
                 <a href="/">Back</a>
             </body>
             </html>
@@ -196,16 +256,44 @@ def index():
         <html>
         <head>
             <style>
-                body { font-family: Arial, sans-serif; background-color: #f4f4f4; color: #333; margin: 0; padding: 20px; }
-                h1 { color: #0056b3; text-align: center; font-size: 36px; margin-bottom: 20px; }
-                form { text-align: center; }
-                input[type="text"] { padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 5px; }
-                button { padding: 10px 20px; font-size: 16px; border: none; border-radius: 5px; background-color: #007bff; color: #fff; cursor: pointer; }
-                button:hover { background-color: #0056b3; }
+                body {
+                    font-family: Arial, sans-serif;
+                    background-color: #f4f4f4;
+                    color: #333;
+                    margin: 0;
+                    padding: 20px;
+                }
+                h1 {
+                    color: #0056b3;
+                    text-align: center;
+                    font-size: 36px;
+                    margin-bottom: 20px;
+                }
+                form {
+                    text-align: center;
+                }
+                input[type="text"] {
+                    padding: 10px;
+                    font-size: 16px;
+                    border: 1px solid #ccc;
+                    border-radius: 5px;
+                }
+                button {
+                    padding: 10px 20px;
+                    font-size: 16px;
+                    border: none;
+                    border-radius: 5px;
+                    background-color: #007bff;
+                    color: #fff;
+                    cursor: pointer;
+                }
+                button:hover {
+                    background-color: #0056b3;
+                }
             </style>
         </head>
         <body>
-            <h1>Domain Security Scanner</h1>
+            <h1>SecureSpectra-X</h1>
             <form method="post">
                 <label for="domain">Enter the domain:</label>
                 <input type="text" id="domain" name="domain" required>
@@ -216,4 +304,4 @@ def index():
     '''
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(debug=True)
