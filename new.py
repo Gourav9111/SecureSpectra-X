@@ -159,7 +159,8 @@ def index():
         login_pages = find_login_pages(domain)
         result['login_pages'] = login_pages
 
-        return render_template_string("""<html>
+        return render_template_string("""
+            <html>
             <head>
                 <style>
                     body { font-family: Arial, sans-serif; background-color: #f4f4f4; color: #333; margin: 0; padding: 20px; }
@@ -170,56 +171,26 @@ def index():
                     ul li { background-color: #fff; margin: 5px 0; padding: 10px; border-radius: 5px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); }
                     a { color: #007bff; text-decoration: none; }
                     a:hover { text-decoration: underline; }
-                    .header { text-align: center; margin-bottom: 30px; }
-                    .header h1 { font-size: 48px; color: #ff5722; }
                 </style>
             </head>
             <body>
-                <div class="header">
-                    <h1>SecureSpectra-X</h1>
-                </div>
                 <h1>Security Check Results for {{ result.domain }}</h1>
                 <h2>Technologies Detected</h2>
-                <ul>
-                    {% for tech in result.technologies %}
-                    <li>{{ tech }}</li>
-                    {% endfor %}
-                </ul>
+                <ul>{% for tech in result.technologies %}<li>{{ tech }}</li>{% endfor %}</ul>
                 <h2>CVEs Detected</h2>
-                <ul>
-                    {% for tech, cves in result.cves.items() %}
-                    <li>{{ tech }}
-                        <ul>
-                            {% for cve in cves %}
-                            <li><strong>{{ cve.cve_id }}</strong>: {{ cve.description }}</li>
-                            {% endfor %}
-                        </ul>
-                    </li>
-                    {% endfor %}
-                </ul>
+                <ul>{% for tech, cves in result.cves.items() %}<li>{{ tech }}<ul>{% for cve in cves %}<li><strong>{{ cve.cve_id }}</strong>: {{ cve.description }}</li>{% endfor %}</ul></li>{% endfor %}</ul>
                 <h2>Subdomains</h2>
-                <ul>
-                    {% for subdomain in result.subdomains %}
-                    <li>{{ subdomain }}</li>
-                    {% endfor %}
-                </ul>
+                <ul>{% for subdomain in result.subdomains %}<li>{{ subdomain }}</li>{% endfor %}</ul>
                 <h2>Nmap Scan Results</h2>
                 <pre>{{ result.nmap_scan | tojson(indent=4) }}</pre>
                 <h2>Directory Brute-Forcing Results</h2>
-                <ul>
-                    {% for result in result.dirsearch %}
-                    <li>{{ result }}</li>
-                    {% endfor %}
-                </ul>
+                <ul>{% for result in result.dirsearch %}<li>{{ result }}</li>{% endfor %}</ul>
                 <h2>Login Pages</h2>
-                <ul>
-                    {% for page in result.login_pages %}
-                    <li><a href="{{ page }}" target="_blank">{{ page }}</a></li>
-                    {% endfor %}
-                </ul>
+                <ul>{% for page in result.login_pages %}<li><a href="{{ page }}" target="_blank">{{ page }}</a></li>{% endfor %}</ul>
                 <a href="/">Back</a>
             </body>
-            </html>""", result=result)
+            </html>
+        """, result=result)
 
     return '''
         <html>
@@ -234,7 +205,7 @@ def index():
             </style>
         </head>
         <body>
-            <h1>SecureSpectra-X</h1>
+            <h1>Domain Security Scanner</h1>
             <form method="post">
                 <label for="domain">Enter the domain:</label>
                 <input type="text" id="domain" name="domain" required>
@@ -245,4 +216,4 @@ def index():
     '''
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)
