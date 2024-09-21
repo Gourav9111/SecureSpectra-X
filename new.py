@@ -159,62 +159,19 @@ def index():
         login_pages = find_login_pages(domain)
         result['login_pages'] = login_pages
 
-        return render_template_string("""
-            <html>
+        return render_template_string("""<html>
             <head>
                 <style>
-                    body {
-                        font-family: Arial, sans-serif;
-                        background-color: #f4f4f4;
-                        color: #333;
-                        margin: 0;
-                        padding: 20px;
-                    }
-                    h1 {
-                        color: #0056b3;
-                        text-align: center;
-                        font-size: 36px;
-                        margin-bottom: 20px;
-                    }
-                    h2 {
-                        color: #007bff;
-                        border-bottom: 2px solid #007bff;
-                        padding-bottom: 10px;
-                        margin-bottom: 10px;
-                    }
-                    pre {
-                        background-color: #333;
-                        color: #fff;
-                        padding: 10px;
-                        border-radius: 5px;
-                        overflow-x: auto;
-                    }
-                    ul {
-                        list-style-type: none;
-                        padding: 0;
-                    }
-                    ul li {
-                        background-color: #fff;
-                        margin: 5px 0;
-                        padding: 10px;
-                        border-radius: 5px;
-                        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-                    }
-                    a {
-                        color: #007bff;
-                        text-decoration: none;
-                    }
-                    a:hover {
-                        text-decoration: underline;
-                    }
-                    .header {
-                        text-align: center;
-                        margin-bottom: 30px;
-                    }
-                    .header h1 {
-                        font-size: 48px;
-                        color: #ff5722;
-                    }
+                    body { font-family: Arial, sans-serif; background-color: #f4f4f4; color: #333; margin: 0; padding: 20px; }
+                    h1 { color: #0056b3; text-align: center; font-size: 36px; margin-bottom: 20px; }
+                    h2 { color: #007bff; border-bottom: 2px solid #007bff; padding-bottom: 10px; margin-bottom: 10px; }
+                    pre { background-color: #333; color: #fff; padding: 10px; border-radius: 5px; overflow-x: auto; }
+                    ul { list-style-type: none; padding: 0; }
+                    ul li { background-color: #fff; margin: 5px 0; padding: 10px; border-radius: 5px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); }
+                    a { color: #007bff; text-decoration: none; }
+                    a:hover { text-decoration: underline; }
+                    .header { text-align: center; margin-bottom: 30px; }
+                    .header h1 { font-size: 48px; color: #ff5722; }
                 </style>
             </head>
             <body>
@@ -262,47 +219,18 @@ def index():
                 </ul>
                 <a href="/">Back</a>
             </body>
-            </html>
-        """, result=result)
+            </html>""", result=result)
 
     return '''
         <html>
         <head>
             <style>
-                body {
-                    font-family: Arial, sans-serif;
-                    background-color: #f4f4f4;
-                    color: #333;
-                    margin: 0;
-                    padding: 20px;
-                }
-                h1 {
-                    color: #0056b3;
-                    text-align: center;
-                    font-size: 36px;
-                    margin-bottom: 20px;
-                }
-                form {
-                    text-align: center;
-                }
-                input[type="text"] {
-                    padding: 10px;
-                    font-size: 16px;
-                    border: 1px solid #ccc;
-                    border-radius: 5px;
-                }
-                button {
-                    padding: 10px 20px;
-                    font-size: 16px;
-                    border: none;
-                    border-radius: 5px;
-                    background-color: #007bff;
-                    color: #fff;
-                    cursor: pointer;
-                }
-                button:hover {
-                    background-color: #0056b3;
-                }
+                body { font-family: Arial, sans-serif; background-color: #f4f4f4; color: #333; margin: 0; padding: 20px; }
+                h1 { color: #0056b3; text-align: center; font-size: 36px; margin-bottom: 20px; }
+                form { text-align: center; }
+                input[type="text"] { padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 5px; }
+                button { padding: 10px 20px; font-size: 16px; border: none; border-radius: 5px; background-color: #007bff; color: #fff; cursor: pointer; }
+                button:hover { background-color: #0056b3; }
             </style>
         </head>
         <body>
